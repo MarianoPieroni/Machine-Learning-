@@ -5,6 +5,9 @@ import seaborn as sns
 from sklearn.preprocessing import MinMaxScaler
 from joblib import dump, load
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, r2_score
 
 def Read_Data():
 
@@ -50,37 +53,44 @@ def Clear_Data(df_clean):
     df_clean = df_clean.dropna(subset=['genres']) #remove os jogos sem generos
     df_clean = df_clean.dropna(subset=['developer', 'publisher','categories']) #remove os jogos sem dev e publisher, poderiamos mudar para Unknown
     df_clean = df_clean.dropna(subset=['price'])
+    #tratando outliers pq o randon perdeu // nao foi necessario apenas em limpar a coluna appid ja foi o suficiente pra ganhar
+    #df_clean = df_clean[df_clean['price'] < 50]
+
     #preenche numeros nos numericos restantes
     cols_numericas = df_clean.select_dtypes(include=[np.number]).columns
     df_clean[cols_numericas] = df_clean[cols_numericas].fillna(0)
     
     print(f"Total de linhas após limpeza: {df_clean.shape[0]}")
 
-    print("\n--- DADOS NULOS APOS LIMPEZA ---")
+    print("\nDADOS NULOS APOS LIMPEZA")
     print(df_clean.isnull().sum())
     
     return df_clean
 
 def Transform_Data(df_clean):
-    print("\n--- TRATAR DADOS (Transformar texto em número) ---")
+    print("\nTRATAR DADOS (Transformar texto em número)")
     if 'genres' in df_clean.columns:
-        # Pega os 10 gêneros mais comuns
+        # 10 generos mais comuns
         top_genres = pd.Series(', '.join(df_clean['genres']).split(', ')).value_counts().head(10).index
         
         print(f"Criando colunas para: {top_genres.tolist()}")
         
         for genre in top_genres:
-            # Cria coluna binária (1 se tiver o gênero, 0 se não)
+            # Cria coluna binario
             col_name = f'Gen_{genre.strip()}'
             df_clean[col_name] = df_clean['genres'].apply(lambda x: 1 if genre in str(x) else 0)
             
-    # Filtramos para ficar apenas com números (Preço, Notas, e os novos Gêneros 0/1)
+    # Filtramos para ficar apenas com binario
     df_tratado = df_clean.select_dtypes(include=[np.number])
+
+    #retiramos a coluna do appid para o randon ganhar
+    if 'appid' in df_tratado.columns:
+        df_tratado = df_tratado.drop(columns=['appid'])
 
     return df_tratado
 
 def Split_Data(df_tratado):
-    print("\n--- DIVISÃO (Treino 80% / Teste 20%) ---")
+    print("\nTreino 80% / Teste 20%")
     
     target = 'price'
         
@@ -93,6 +103,48 @@ def Split_Data(df_tratado):
     print(f"Teste:  {X_test.shape[0]} jogos")
     
     return X_train, X_test, y_train, y_test
+
+def Train_Models(X_train, X_test, y_train, y_test):
+    print("\nTREINO E COMPARAÇÃO")
+    
+    # Regressão Linear, O mínimo aceitável
+    print("\nTreinando Regressão Linear (baseline)")
+    model_lr = LinearRegression()
+    model_lr.fit(X_train, y_train)
+    
+    # Previsão
+    pred_lr = model_lr.predict(X_test)
+    
+    # Avaliação (Erro Médio)
+    maen_lr = mean_absolute_error(y_test, pred_lr)
+    r2_lr = r2_score(y_test, pred_lr)
+    print(f"Erro Médio (Regressão Linear): {maen_lr:.2f} euros")
+    print(f"Score R²: {r2_lr:.4f}") #medir a qualdiade, quanto mais perrto do 1 melhor
+    
+    # Random Forest
+    print("\nTreinando Random Forest")
+    # n_estimators=100 significa que ele cria 100 árvores mentais
+    model_rf = RandomForestRegressor(n_estimators=100, random_state=42)
+    model_rf.fit(X_train, y_train)
+    
+    # Previsão
+    pred_rf = model_rf.predict(X_test)
+    
+    # Avaliação
+    maen_rf = mean_absolute_error(y_test, pred_rf)
+    r2_rf = r2_score(y_test, pred_rf)
+    print(f"Erro Médio (Random Forest): {maen_rf:.2f} euros")
+    print(f"Score R²: {r2_rf:.4f}")
+    
+    print("\nRESULTADO FINAL")
+    if maen_rf < maen_lr:
+        melhoria = maen_lr - maen_rf
+        print(f"O Random Forest venceu")
+        print(f"Ele erra {melhoria:.2f} euros a menos")
+        return model_rf
+    else:
+        print("O Randon Florest perdeu")
+        return model_lr
 
 
 def main():
@@ -107,6 +159,15 @@ def main():
         df_clean = Transform_Data(df_clean)
         #divisao de treino e teste
         X_train, X_test, y_train, y_test = Split_Data(df_clean)
+        #treino
+        if X_train is not None:
+            melhor_modelo = Train_Models(X_train, X_test, y_train, y_test)
+
+    #notas
+    #ao analizar o r2 vimos que conseguimos prever apenas 5% do preço a partir do generos
+    #com isso concluimos que genero nao define o preço
+    #se tratarmos os outliers o r2 sobe para 12% em media 
+    #se nao tiramos o id o randon florest tem dificuldades para prever fazendo o rl ganhar
 
     return df_clean
 
