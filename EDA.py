@@ -53,8 +53,8 @@ def Clear_Data(df_clean):
     df_clean = df_clean.dropna(subset=['genres']) #remove os jogos sem generos
     df_clean = df_clean.dropna(subset=['developer', 'publisher','categories']) #remove os jogos sem dev e publisher, poderiamos mudar para Unknown
     df_clean = df_clean.dropna(subset=['price'])
-    #tratando outliers pq o randon perdeu // nao foi necessario apenas em limpar a coluna appid ja foi o suficiente pra ganhar
-    #df_clean = df_clean[df_clean['price'] < 50]
+    #tratando outliers pq o randon perdeu // nao foi necessario apenas em limpar a coluna appid ja foi o suficiente pra ganhar // é necessario para melhorar o r2
+    df_clean = df_clean[df_clean['price'] < 100]
 
     #preenche numeros nos numericos restantes
     cols_numericas = df_clean.select_dtypes(include=[np.number]).columns
@@ -69,9 +69,11 @@ def Clear_Data(df_clean):
 
 def Transform_Data(df_clean):
     print("\nTRATAR DADOS (Transformar texto em número)")
+
+    # //
     if 'genres' in df_clean.columns:
         # 10 generos mais comuns
-        top_genres = pd.Series(', '.join(df_clean['genres']).split(', ')).value_counts().head(10).index
+        top_genres = pd.Series('; '.join(df_clean['genres']).split('; ')).value_counts().head(10).index
         
         print(f"Criando colunas para: {top_genres.tolist()}")
         
@@ -79,7 +81,19 @@ def Transform_Data(df_clean):
             # Cria coluna binario
             col_name = f'Gen_{genre.strip()}'
             df_clean[col_name] = df_clean['genres'].apply(lambda x: 1 if genre in str(x) else 0)
-            
+    
+    # //
+    if 'release_year' in df_clean.columns:
+        df_clean['release_year'] = pd.to_numeric(df_clean['release_year'], errors='coerce')
+        # Preenche anos vazios com a média ou mediana (ex: 2015) para não perder linhas
+        mediana_ano = df_clean['release_year'].median()
+        df_clean['release_year'] = df_clean['release_year'].fillna(mediana_ano)
+        print(f"Variável 'release_year' incluída no modelo.")
+
+
+    # //
+
+
     # Filtramos para ficar apenas com binario
     df_tratado = df_clean.select_dtypes(include=[np.number])
 
@@ -168,6 +182,9 @@ def main():
     #com isso concluimos que genero nao define o preço
     #se tratarmos os outliers o r2 sobe para 12% em media 
     #se nao tiramos o id o randon florest tem dificuldades para prever fazendo o rl ganhar
+    #achei fraco prever apenas com o preço e fiz em relaçao ao ano e nao mudou nada o R2
+    #com isso vemos que a base de dados é "limitada"
+    #tentei adicionar o categories para prever junto com o ano e o genero e o r2 ficou negativo, entao tirei
 
     return df_clean
 
