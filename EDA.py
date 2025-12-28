@@ -187,6 +187,3 @@ def main():
     #tentei adicionar o categories para prever junto com o ano e o genero e o r2 ficou negativo, entao tirei
 
     return df_clean
-
-if __name__ == "__main__":
-    df_clean = main()
