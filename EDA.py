@@ -69,13 +69,17 @@ def Clear_Data(df_clean):
 
 def Transform_Data(df_clean):
     print("\nTRATAR DADOS (Transformar texto em número)")
-
+    top_genres = []
     # //
     if 'genres' in df_clean.columns:
-        # 10 generos mais comuns
-        top_genres = pd.Series('; '.join(df_clean['genres']).split('; ')).value_counts().head(10).index
+        # 15 generos mais comuns
+
+        df_clean['genres'] = df_clean['genres'].astype(str).str.strip()
+        all_genres = df_clean['genres'].str.split(';').explode()
+        all_genres = all_genres.str.strip()
+        top_genres = all_genres.value_counts().head(15).index.tolist()
         
-        print(f"Criando colunas para: {top_genres.tolist()}")
+     #   print(f"{top_genres}")
         
         for genre in top_genres:
             # Cria coluna binario
@@ -89,8 +93,6 @@ def Transform_Data(df_clean):
         mediana_ano = df_clean['release_year'].median()
         df_clean['release_year'] = df_clean['release_year'].fillna(mediana_ano)
         print(f"Variável 'release_year' incluída no modelo.")
-
-
     # //
 
 
@@ -99,9 +101,9 @@ def Transform_Data(df_clean):
 
     #retiramos a coluna do appid para o randon ganhar
     if 'appid' in df_tratado.columns:
-        df_tratado = df_tratado.drop(columns=['appid'])
+        df_tratado = df_tratado.drop(columns=['appid']) 
 
-    return df_tratado
+    return df_tratado, top_genres
 
 def Split_Data(df_tratado):
     print("\nTreino 80% / Teste 20%")
@@ -170,13 +172,18 @@ def main():
         #limpeza
         df_clean = Clear_Data(df_clean)
         #tratamento binario
-        df_clean = Transform_Data(df_clean)
+        df_clean,lista_generos = Transform_Data(df_clean)
         #divisao de treino e teste
         X_train, X_test, y_train, y_test = Split_Data(df_clean)
         #treino
         if X_train is not None:
             melhor_modelo = Train_Models(X_train, X_test, y_train, y_test)
-
+            #criar o joblib
+            if melhor_modelo is not None:
+                from joblib import dump
+                dump(melhor_modelo, 'steam_price_model.joblib')
+                dump(lista_generos, 'generos.joblib')
+                print("joblib criado")
     #notas
     #ao analizar o r2 vimos que conseguimos prever apenas 5% do preço a partir do generos
     #com isso concluimos que genero nao define o preço
