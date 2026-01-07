@@ -79,7 +79,7 @@ def Transform_Data(df_clean):
         all_genres = all_genres.str.strip()
         top_genres = all_genres.value_counts().head(15).index.tolist()
         
-     #   print(f"{top_genres}")
+        #print(f"{top_genres}")
         
         for genre in top_genres:
             # Cria coluna binario
@@ -140,7 +140,13 @@ def Train_Models(X_train, X_test, y_train, y_test):
     # Random Forest
     print("\nTreinando Random Forest")
     # n_estimators=100 significa que ele cria 100 árvores mentais
-    model_rf = RandomForestRegressor(n_estimators=100, random_state=42)
+    model_rf = RandomForestRegressor(   #melhorando o random, antes so dava o tamanho da arvore, aplicamos o hiper
+        n_estimators=200,      # 200 arvores
+        max_depth=10,          # Limita a profundidade (evitar o overfitting)
+        min_samples_leaf=2,    # Garante que cada folha tenha pelo menos 2 dados
+        random_state=42,
+        n_jobs=-1              # Acelera o treino
+    )
     model_rf.fit(X_train, y_train)
     
     # Previsão
@@ -192,5 +198,6 @@ def main():
     #achei fraco prever apenas com o preço e fiz em relaçao ao ano e nao mudou nada o R2
     #com isso vemos que a base de dados é "limitada"
     #tentei adicionar o categories para prever junto com o ano e o genero e o r2 ficou negativo, entao tirei
+    #no codigo final o ramdon tinha subido para 26% de precisao e apos especificar o hiperparametro subiu para 30%
 
     return df_clean
