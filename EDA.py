@@ -9,6 +9,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
+
 def Read_Data():
 
     df = pd.read_csv("a_steam_data_2021_2025.csv")
@@ -55,6 +56,10 @@ def Clear_Data(df_clean):
     df_clean = df_clean.dropna(subset=['price'])
     #tratando outliers pq o randon perdeu // nao foi necessario apenas em limpar a coluna appid ja foi o suficiente pra ganhar // é necessario para melhorar o r2
     df_clean = df_clean[df_clean['price'] < 100]
+
+    if 'release_year' in df_clean.columns:
+        df_clean['release_year'] = pd.to_numeric(df_clean['release_year'], errors='coerce')
+        df_clean = df_clean.dropna(subset=['release_year']) # Remove os que deram erro
 
     #preenche numeros nos numericos restantes
     cols_numericas = df_clean.select_dtypes(include=[np.number]).columns
@@ -104,6 +109,7 @@ def Transform_Data(df_clean):
         df_tratado = df_tratado.drop(columns=['appid']) 
 
     return df_tratado, top_genres
+
 
 def Split_Data(df_tratado):
     print("\nTreino 80% / Teste 20%")
@@ -168,7 +174,6 @@ def Train_Models(X_train, X_test, y_train, y_test):
         print("O Randon Florest perdeu")
         return model_lr
 
-
 def main():
     df, df_clean = Read_Data()
 
@@ -181,15 +186,22 @@ def main():
         df_clean,lista_generos = Transform_Data(df_clean)
         #divisao de treino e teste
         X_train, X_test, y_train, y_test = Split_Data(df_clean)
+
+        
         #treino
+        
         if X_train is not None:
-            melhor_modelo = Train_Models(X_train, X_test, y_train, y_test)
+            melhor_modelo,lista_generos, = Train_Models(X_train, X_test, y_train, y_test)
             #criar o joblib
             if melhor_modelo is not None:
                 from joblib import dump
-                dump(melhor_modelo, 'steam_price_model.joblib')
-                dump(lista_generos, 'generos.joblib')
+    #         dump(melhor_modelo, 'steam_price_model.joblib')
+    #         dump(lista_generos, 'generos.joblib')
                 print("joblib criado")
+
+
+
+                
     #notas
     #ao analizar o r2 vimos que conseguimos prever apenas 5% do preço a partir do generos
     #com isso concluimos que genero nao define o preço
@@ -199,5 +211,11 @@ def main():
     #com isso vemos que a base de dados é "limitada"
     #tentei adicionar o categories para prever junto com o ano e o genero e o r2 ficou negativo, entao tirei
     #no codigo final o ramdon tinha subido para 26% de precisao e apos especificar o hiperparametro subiu para 30%
+    #apos usar a pipeline caiu para 22% o r2, por conta do ruido, ele esta analizando todos os generos (ate os que so tem 1 jogo), por isso antes usava o top15
+    #ao mudar o pipe para apenas o top20, muda nada pois ele ja faz isso ao eliminar os generos com 1 jogo
+
 
     return df_clean
+
+""" if __name__ == "__main__":
+    main() """

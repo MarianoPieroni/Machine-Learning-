@@ -2,7 +2,7 @@ import pandas as pd
 import sys
 import os
 from joblib import load
-import EDA  # Importa o seu EDA.py
+import EDA_pipe  # Importa o seu EDA.py
 
 def menu():
     print("STEAM PICES PREDICTOR")
@@ -22,27 +22,40 @@ def modo_previsao():
     #carrega o modelo (joblib)
     modelo = load(arquivo)
     lista_generos = load('generos.joblib')
+    lista_publisher = load('publisher.joblib')
 
     print("\nGêneros disponiveis")
     print(", ".join(lista_generos))
+    print("\nPublishers disponiveis")
+    print(", ".join(lista_publisher))
     
     entrada_generos = input("\nGêneros: ")
+    entrada_publisher = input("\publisher: ")
     entrada_ano = int(input("Ano de Lançamento: "))
 
     dados_input = {}
     dados_input['release_year'] = [entrada_ano]
+    dados_input['publisher'] = [entrada_publisher]
+    dados_input['genres'] = [entrada_generos]
     dados_input['recommendations'] = [0]    #colocamos pois usamos para treinar a AI
 
-    validar_genero = 0
+    X_novo = pd.DataFrame(dados_input)
+    preco = modelo.predict(X_novo)[0]
+    print(f" PREÇO ESTIMADO: {preco:.2f} euros")
+
+"""     validar_genero = 0
+    validar_publisher = 0 """
     
-    #transforma o genero digitado em binario
-    for genero in lista_generos:
+    #transforma o genero digitado em binario 
+"""     for genero in lista_generos:
         col_tecnica = f"Gen_{genero}"
         if genero.lower() in entrada_generos.lower():
             dados_input[col_tecnica] = [1]
             validar_genero +=1
         else:
             dados_input[col_tecnica] = [0]
+    
+
 
     if validar_genero == 0:
         print("Nome do genero errado.")
@@ -53,13 +66,15 @@ def modo_previsao():
         preco = modelo.predict(X_novo)[0]       #parte principal do codigo de prever dados, faz os calculos aprendidos
         print(f"\nPREÇO ESTIMADO: {preco:.2f} euros")
     except Exception as e:
-        print(f"\nErro na previsão: {e}")
+        print(f"\nErro na previsão: {e}") """
+
+
 
 def main():
     while True:
         op = menu()
         if op == '1':
-            EDA.main()
+            EDA_pipe.main()
         elif op == '2':
             modo_previsao()
         elif op == '3':
