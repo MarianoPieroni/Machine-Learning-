@@ -20,6 +20,7 @@ else:
 
 class JogoInput(BaseModel):
     genres: str
+    categories: str
     publisher: str
     release_year: int
 
@@ -40,10 +41,12 @@ def prever_preco(jogo: JogoInput):
         # O genero não precisa de lower() pq o CountVectorizer já faz isso, 
         # mas removemos espaços extras por segurança.
         generos_limpos = jogo.genres.strip()
+        categorias_limpas = jogo.categories.strip()
 
         # --- 3. Montar DataFrame ---
         dados_dict = {
             'genres': [generos_limpos],
+            'categories': [categorias_limpas],
             'publisher': [publisher_limpa], 
             'release_year': [jogo.release_year]
         }

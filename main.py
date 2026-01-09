@@ -23,21 +23,28 @@ def modo_previsao():
     modelo = load(arquivo)
     lista_generos = load('generos.joblib')
     lista_publisher = load('publisher.joblib')
+    lista_categorias = load('categorias.joblib')
 
     print("\nGêneros disponiveis")
     print(", ".join(lista_generos))
+    entrada_generos = input("\nGêneros: ")
+
+    print("\Categorias disponiveis")
+    print(", ".join(lista_categorias))
+    entrada_categorias = input("Categorias: ")
+
     print("\nPublishers disponiveis")
     print(", ".join(lista_publisher))
-    
-    entrada_generos = input("\nGêneros: ")
-    entrada_publisher = input("\publisher: ")
+    entrada_publisher = input("\publisher: ")    
+
     entrada_ano = int(input("Ano de Lançamento: "))
 
-    dados_input = {}
-    dados_input['release_year'] = [entrada_ano]
-    dados_input['publisher'] = [entrada_publisher]
-    dados_input['genres'] = [entrada_generos]
-    dados_input['recommendations'] = [0]    #colocamos pois usamos para treinar a AI
+    dados_input = pd.DataFrame({
+        'release_year': [entrada_ano],
+        'genres': [entrada_generos],
+        'categories': [entrada_categorias],
+        'publisher': [entrada_publisher]
+    })
 
     X_novo = pd.DataFrame(dados_input)
     preco = modelo.predict(X_novo)[0]

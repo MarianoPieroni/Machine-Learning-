@@ -60,6 +60,7 @@ def Clear_Data(df_clean):
     df_clean = df_clean.dropna(subset=['price'])
     #tratando outliers pq o randon perdeu // nao foi necessario apenas em limpar a coluna appid ja foi o suficiente pra ganhar // é necessario para melhorar o r2
     df_clean = df_clean[df_clean['price'] < 100]
+    df_clean = df_clean[df_clean['price'] > 0.5]
 
     if 'release_year' in df_clean.columns:
         df_clean['release_year'] = pd.to_numeric(df_clean['release_year'], errors='coerce')
@@ -181,7 +182,7 @@ def pipeline(X_train, X_test, y_train, y_test):
     # 1. Configurar transformadores
     numeric_transformer = Pipeline(steps=[('imputer', SimpleImputer(strategy='median'))])
 
-    genres_transformer = Pipeline(steps=[
+    text_list_transformer = Pipeline(steps=[
         ('formatter', FunctionTransformer(to_list)), 
         ('vect', CountVectorizer(tokenizer=split_semicolon, ngram_range=(1, 2), max_features=200)) 
     ])
@@ -195,7 +196,8 @@ def pipeline(X_train, X_test, y_train, y_test):
     preprocessor = ColumnTransformer(
         transformers=[
             ('num', numeric_transformer, ['release_year']),
-            ('cat_genres', genres_transformer, ['genres']),
+            ('cat_genres', text_list_transformer, ['genres']),
+            ('cat_categories', text_list_transformer, ['categories']),
             ('cat_pub', publisher_transformer, ['publisher'])
         ],
         remainder='drop'
@@ -203,8 +205,8 @@ def pipeline(X_train, X_test, y_train, y_test):
 
     model = RandomForestRegressor(
         n_estimators=200,
-        max_depth=None,
-        min_samples_leaf=3, # CONTROLA overfitting
+        max_depth=20,
+        min_samples_leaf=4, # CONTROLA overfitting
         random_state=42,
         n_jobs=-1)
 
@@ -232,14 +234,16 @@ def pipeline(X_train, X_test, y_train, y_test):
         vect_step = pipeline.named_steps['preprocessor'].named_transformers_['cat_genres'].named_steps['vect']
         lista_generos_aprendidos = vect_step.get_feature_names_out()
 
+        #extrair categorias
+        vect_categories = preprocessor.named_transformers_['cat_categories'].named_steps['vect']
+        lista_categorias = vect_categories.get_feature_names_out()
+
         # Extrair Publishers (CORRIGIDO)
         # 1. Acessamos a Pipeline de Publisher ('cat_pub')
         pub_pipe = pipeline.named_steps['preprocessor'].named_transformers_['cat_pub']
         # 2. Dentro dela, acessamos o passo 'encoder'
         enc_step = pub_pipe.named_steps['encoder']
-        
         raw_pub_names = enc_step.get_feature_names_out()
-        
         # O prefixo muda para 'x0_' por causa da função de limpeza, então removemos 'x0_'
         lista_publishers = [name.replace('publisher_', '').replace('x0_', '') for name in raw_pub_names]
 
@@ -248,7 +252,7 @@ def pipeline(X_train, X_test, y_train, y_test):
         lista_generos_aprendidos = []
         lista_publishers = []
     
-    return pipeline, lista_generos_aprendidos, lista_publishers
+    return pipeline, lista_generos_aprendidos,lista_categorias, lista_publishers
 
 def main():
     df, df_clean = Read_Data()
@@ -260,21 +264,25 @@ def main():
         df_clean = Clear_Data(df_clean)
 
         #pipe
-        cols_to_use = ['genres', 'publisher', 'release_year', 'price']
+        cols_to_use = ['genres', 'categories', 'publisher', 'release_year', 'price']
         df_pronto_para_split = df_clean[cols_to_use]
         X_train, X_test, y_train, y_test = Split_Data(df_pronto_para_split)
 
         #treino
         if X_train is not None:
-            melhor_modelo,lista_generos,lista_publishers = pipeline(X_train, X_test, y_train, y_test)
+            melhor_modelo,lista_generos,lista_categorias,lista_publishers = pipeline(X_train, X_test, y_train, y_test)
             #criar o joblib
             if melhor_modelo is not None:
                 from joblib import dump
                 dump(melhor_modelo, 'steam_price_model.joblib')
                 dump(lista_generos, 'generos.joblib')
                 dump(lista_publishers, 'publisher.joblib')
+                dump(lista_categorias, 'categorias.joblib')
                 print("joblib criado")
 
+        #Regressão Linear: Diria: "Bom, parece que sobe 5 euros por ano. Então em 2030 será €75." (Ela traça uma linha infinita).
+        #O ano 2030 é maior que 2025? Sim. Eu tenho dados depois de 2025? Não. Então a melhor
+        #resposta que tenho é a média do último grupo que conheço (2025)." Resultado: €50.
     return df_clean
 
 """ if __name__ == "__main__":
