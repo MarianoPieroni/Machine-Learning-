@@ -22,18 +22,13 @@ def Read_Data():
     print(f"Dimensoes: {df.shape}")
     print(f"Colunas: {df.columns.tolist()}")
     
-    return df, df_clean
+    return df_clean
 
 def Analyze_Data(df_clean):
 
     numericas = df_clean.select_dtypes(include=[np.number]).columns.tolist()
     categoricas = df_clean.select_dtypes(include=['object']).columns.tolist()
-
-    variables = {
-        'Numericas': numericas,     
-        'Categoricas': categoricas, 
-        'Texto/Listas': ['genres', 'tags', 'categories'] # Colunas que precisam de tratamento especial
-    }
+    
     print("\n--- CLASSIFICAÇÃO DAS VARIÁVEIS ---")
     print(f"Numéricas ({len(numericas)}): {numericas}")
     print(f"Categóricas ({len(categoricas)}): {categoricas}")
@@ -53,22 +48,21 @@ def Analyze_Data(df_clean):
 
 def Clear_Data(df_clean):
 
-    #clear data
-    df_clean = df_clean.drop_duplicates() #n temos duplicatas mas vou deixar com
-    df_clean = df_clean.dropna(subset=['genres']) #remove os jogos sem generos
-    df_clean = df_clean.dropna(subset=['developer', 'publisher','categories']) #remove os jogos sem dev e publisher, poderiamos mudar para Unknown
-    df_clean = df_clean.dropna(subset=['price'])
+    # Remove o que nao for numero da coluna
+    if 'release_year' in df_clean.columns:
+        df_clean['release_year'] = pd.to_numeric(df_clean['release_year'], errors='coerce')
+        df_clean = df_clean.dropna(subset=['release_year']) 
+
+    #clear data com menos linhas
+    #remove os faltantes de cada variavel e remove as duplicatas
+    cols_check = ['genres', 'developer', 'publisher', 'categories', 'price', 'release_year']
+    df_clean = df_clean.dropna(subset=cols_check).drop_duplicates()
+
     #tratando outliers pq o randon perdeu // nao foi necessario apenas em limpar a coluna appid ja foi o suficiente pra ganhar // é necessario para melhorar o r2
     df_clean = df_clean[df_clean['price'] < 100]
     df_clean = df_clean[df_clean['price'] > 0.5]
 
-    if 'release_year' in df_clean.columns:
-        df_clean['release_year'] = pd.to_numeric(df_clean['release_year'], errors='coerce')
-        df_clean = df_clean.dropna(subset=['release_year']) # Remove os que deram erro
-
-    #preenche numeros nos numericos restantes
-    cols_numericas = df_clean.select_dtypes(include=[np.number]).columns
-    df_clean[cols_numericas] = df_clean[cols_numericas].fillna(0)
+    #tirei o codigo que complementa com 0 os valores nulos, esta redundante ja que tiramos todos os nulos antes
     
     print(f"Total de linhas após limpeza: {df_clean.shape[0]}")
 
@@ -77,97 +71,39 @@ def Clear_Data(df_clean):
     
     return df_clean
 
-def Split_Data(df_tratado):
+def Split_Data(df_clean):
     print("\nTreino 80% / Teste 20%")
-    
-    target = 'price'
-        
-    X = df_tratado.drop(columns=[target]) # Perguntas (Dados)
-    y = df_tratado[target]                # Resposta (Preço)
-    
+
+    cols_to_use = ['genres', 'categories', 'publisher', 'release_year', 'price']
+    X = df_clean[cols_to_use].drop(columns=['price'])
+    y = df_clean['price']
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    print(f"Treino: {X_train.shape[0]} jogos")
-    print(f"Teste:  {X_test.shape[0]} jogos")
+    print(f"Treino: {X_train.shape[0]} | Teste: {X_test.shape[0]}")
+
     
     return X_train, X_test, y_train, y_test
 
-def Train_Models(X_train, X_test, y_train, y_test):
-    print("\nTREINO E COMPARAÇÃO")
-    
-    # Regressão Linear, O mínimo aceitável
-    print("\nTreinando Regressão Linear (baseline)")
-    model_lr = LinearRegression()
-    model_lr.fit(X_train, y_train)
-    
-    # Previsão
-    pred_lr = model_lr.predict(X_test)
-    
-    # Avaliação (Erro Médio)
-    maen_lr = mean_absolute_error(y_test, pred_lr)
-    r2_lr = r2_score(y_test, pred_lr)
-    print(f"Erro Médio (Regressão Linear): {maen_lr:.2f} euros")
-    print(f"Score R²: {r2_lr:.4f}") #medir a qualdiade, quanto mais perrto do 1 melhor
-    
-    # Random Forest
-    print("\nTreinando Random Forest")
-    # n_estimators=100 significa que ele cria 100 árvores mentais
-    model_rf = RandomForestRegressor(   #melhorando o random, antes so dava o tamanho da arvore, aplicamos o hiper
-        n_estimators=200,      # 200 arvores
-        max_depth=10,          # Limita a profundidade (evitar o overfitting)
-        min_samples_leaf=2,    # Garante que cada folha tenha pelo menos 2 dados
-        random_state=42,
-        n_jobs=-1              # Acelera o treino
-    )
-    model_rf.fit(X_train, y_train)
-    
-    # Previsão
-    pred_rf = model_rf.predict(X_test)
-    
-    # Avaliação
-    maen_rf = mean_absolute_error(y_test, pred_rf)
-    r2_rf = r2_score(y_test, pred_rf)
-    print(f"Erro Médio (Random Forest): {maen_rf:.2f} euros")
-    print(f"Score R²: {r2_rf:.4f}")
-    
-    print("\nRESULTADO FINAL")
-    if maen_rf < maen_lr:
-        melhoria = maen_lr - maen_rf
-        print(f"O Random Forest venceu")
-        print(f"Ele erra {melhoria:.2f} euros a menos")
-        return model_rf
-    else:
-        print("O Randon Florest perdeu")
-        return model_lr
 
-
+#FUNÇÕES AUXILIARES DO PIPELINE 
 def to_list(x):
-    """
-    Converte o input para lista de forma segura.
-    Funciona para DataFrame com 1 linha ou várias.
-    """
+    #Converte o input para lista de forma segura.
     if isinstance(x, pd.DataFrame):
         # Pega a primeira coluna (independente do nome) e converte para lista
         return x.iloc[:, 0].tolist()
     
-    # Se já for uma Series ou array
     return x.tolist()
 
 def split_semicolon(text):
-    """
-    CORREÇÃO 1: Divide, remove espaços e converte para MINÚSCULO.
-    Isso garante que 'Action; RPG' vire ['action', 'rpg']
-    """
+    # Divide, remove espaços e converte para MINÚSCULO ('Action; RPG' -> ['action', 'rpg'])
     if not isinstance(text, str):
         return []
     return [t.strip().lower() for t in text.split(';')]
 
 def limpar_publisher(x):
-    """
-    CORREÇÃO 2: Função nova para limpar a Publisher antes do OneHotEncoder.
-    Converte tudo para minúsculo e remove espaços.
-    """
-    # Se for DataFrame, pega a série de texto
+
+    #limpar/padronizar a Publisher antes do OneHotEncoder.
+    #Converte tudo para minúsculo e remove espaços.
     if isinstance(x, pd.DataFrame):
         text_series = x.iloc[:, 0].astype(str)
     else:
@@ -175,11 +111,11 @@ def limpar_publisher(x):
     
     return text_series.str.lower().str.strip().to_frame()
 
-def pipeline(X_train, X_test, y_train, y_test):
+def Treinar_pipeline(X_train, X_test, y_train, y_test):
 
-    print("\n[PIPELINE] Configurando e Treinando Pipeline Blindado...")
-    
-    # 1. Configurar transformadores
+    print("\nTreinando Pipeline")
+
+    # transformadores
     numeric_transformer = Pipeline(steps=[('imputer', SimpleImputer(strategy='median'))])
 
     text_list_transformer = Pipeline(steps=[
@@ -192,7 +128,7 @@ def pipeline(X_train, X_test, y_train, y_test):
         ('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False, max_categories=1000))
     ])
 
-    # 2. Juntar tudo
+    # Juntar tudo
     preprocessor = ColumnTransformer(
         transformers=[
             ('num', numeric_transformer, ['release_year']),
@@ -215,75 +151,49 @@ def pipeline(X_train, X_test, y_train, y_test):
         ('model', model)
     ])
     
-    # 4. Treinar
+    # Treinar
     pipeline.fit(X_train, y_train)
     
-    # 5. Avaliar
+    # Avaliar modelo
     pred_rf = pipeline.predict(X_test)
     maen_rf = mean_absolute_error(y_test, pred_rf)
     r2_rf = r2_score(y_test, pred_rf)
     print(f"Erro Médio (Random Forest): {maen_rf:.2f} euros")
     print(f"Score R²: {r2_rf:.4f}")
-
-    # --- CORREÇÃO DA EXTRAÇÃO ---
-    lista_generos_aprendidos = []
-    lista_publishers = []
     
-    try:
-        # Extrair Gêneros
-        vect_step = pipeline.named_steps['preprocessor'].named_transformers_['cat_genres'].named_steps['vect']
-        lista_generos_aprendidos = vect_step.get_feature_names_out()
+    return pipeline
 
-        #extrair categorias
-        vect_categories = preprocessor.named_transformers_['cat_categories'].named_steps['vect']
-        lista_categorias = vect_categories.get_feature_names_out()
+def Salvar_variaveis(pipeline):
+        
+    # Acesso aos transformadores dentro do pipeline
+    pre = pipeline.named_steps['preprocessor']
+        
+    vocab_genres = pre.named_transformers_['cat_genres']['vect'].get_feature_names_out()
+    vocab_cats = pre.named_transformers_['cat_categories']['vect'].get_feature_names_out()
+        
+    # Publishers (tratamento para OHE)
+    raw_pubs = pre.named_transformers_['cat_pub']['encoder'].get_feature_names_out()
+    vocab_pubs = [name.replace('publisher_', '') for name in raw_pubs]
+        
+    dump(vocab_genres, 'generos.joblib')
+    dump(vocab_cats, 'categorias.joblib')        
+    dump(vocab_pubs, 'publisher.joblib')
+    dump(pipeline, 'steam_price_model.joblib')
+    print("joblibs criados")
 
-        # Extrair Publishers (CORRIGIDO)
-        # 1. Acessamos a Pipeline de Publisher ('cat_pub')
-        pub_pipe = pipeline.named_steps['preprocessor'].named_transformers_['cat_pub']
-        # 2. Dentro dela, acessamos o passo 'encoder'
-        enc_step = pub_pipe.named_steps['encoder']
-        raw_pub_names = enc_step.get_feature_names_out()
-        # O prefixo muda para 'x0_' por causa da função de limpeza, então removemos 'x0_'
-        lista_publishers = [name.replace('publisher_', '').replace('x0_', '') for name in raw_pub_names]
-
-    except Exception as e:
-        print(f"Aviso: Não foi possível extrair listas ({e})")
-        lista_generos_aprendidos = []
-        lista_publishers = []
-    
-    return pipeline, lista_generos_aprendidos,lista_categorias, lista_publishers
 
 def main():
-    df, df_clean = Read_Data()
-
-    if df is not None:
-        #analize
-        df_clean = Analyze_Data(df_clean)
-        #limpeza
-        df_clean = Clear_Data(df_clean)
-
-        #pipe
-        cols_to_use = ['genres', 'categories', 'publisher', 'release_year', 'price']
-        df_pronto_para_split = df_clean[cols_to_use]
-        X_train, X_test, y_train, y_test = Split_Data(df_pronto_para_split)
-
-        #treino
-        if X_train is not None:
-            melhor_modelo,lista_generos,lista_categorias,lista_publishers = pipeline(X_train, X_test, y_train, y_test)
-            #criar o joblib
-            if melhor_modelo is not None:
-                from joblib import dump
-                dump(melhor_modelo, 'steam_price_model.joblib')
-                dump(lista_generos, 'generos.joblib')
-                dump(lista_publishers, 'publisher.joblib')
-                dump(lista_categorias, 'categorias.joblib')
-                print("joblib criado")
+    
+    df = Read_Data()
+    Analyze_Data(df) 
+    df_clean = Clear_Data(df)
+    X_train, X_test, y_train, y_test = Split_Data(df_clean)
+    modelo_final = Treinar_pipeline(X_train, X_test, y_train, y_test)
+    Salvar_variaveis(modelo_final)
 
         #Regressão Linear: Diria: "Bom, parece que sobe 5 euros por ano. Então em 2030 será €75." (Ela traça uma linha infinita).
         #O ano 2030 é maior que 2025? Sim. Eu tenho dados depois de 2025? Não. Então a melhor
         #resposta que tenho é a média do último grupo que conheço (2025)." Resultado: €50.
-    return df_clean
 
 """ if __name__ == "__main__":
     main() """

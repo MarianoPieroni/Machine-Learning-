@@ -75,7 +75,7 @@ def modo_previsao():
     except Exception as e:
         print(f"\nErro na previsão: {e}") """
 
-
+#nao precisamos mais mudar o imput pois a pipeline ja faz isso no modelo
 
 def main():
     while True:

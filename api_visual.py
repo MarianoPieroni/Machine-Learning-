@@ -1,32 +1,29 @@
 import streamlit as st
 import requests
 from joblib import load
-import pandas as pd
-import os
 
-# streamlit run app.py
+# streamlit run api_visual.py
 
 # Configuração da Página
 st.set_page_config(page_title="Steam Predictor", layout="centered")
 
-# Título e Estilo
+# Título
 st.title("Steam Price Predictor AI")
 st.markdown("Bem-vindo! Configure os detalhes do jogo abaixo para prever o preço.")
 
-# Endereço da sua API (A cozinha)
+# Endereço da API
 API_URL = "http://127.0.0.1:8000/predict"
 
 # --- BARRA LATERAL (OPÇÕES) ---
 st.sidebar.header("Configurações do Jogo")
 
-# 1. Carregar Listas para os Menus
+#Carregar Listas para os Menus
 try:
     # Carregamos os dados brutos
     raw_generos = load('generos.joblib')
     raw_publishers = load('publisher.joblib')
     raw_categorias = load('categorias.joblib')
 
-    # --- CORREÇÃO DO ERRO ---
     # Verifica se é um array do Numpy (que tem a função .tolist())
     # Se for, converte para lista normal do Python. Se não, usa como está.
     lista_generos = raw_generos.tolist() if hasattr(raw_generos, 'tolist') else raw_generos
@@ -40,7 +37,7 @@ except Exception as e:
     lista_publishers = ["Ubisoft", "Other"]
     lista_categorias = ["Single-player", "Multi-player"]
 
-# 2. Inputs do Usuário (Interface Gráfica)
+#Inputs
 
 # Gêneros
 generos_selecionados = st.sidebar.multiselect(
@@ -66,8 +63,8 @@ publisher_selecionada = st.sidebar.selectbox(
 # Ano
 ano_selecionado = st.sidebar.number_input(
     "Ano de Lançamento:",
-    min_value=1990,
-    max_value=2030,
+    min_value=2021,
+    max_value=2025,
     value=2025
 )
 
@@ -91,7 +88,7 @@ with col2:
 st.markdown("---")
 
 # Botão de Previsão
-if st.button("💰 Calcular Preço Sugerido", type="primary"):
+if st.button("Calcular Preço Sugerido", type="primary"):
     
     # 1. Monta o pacote de dados
     dados_jogo = {

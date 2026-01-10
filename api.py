@@ -3,21 +3,21 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from joblib import load
 import os
-import EDA_pipe  # Importa o EDA para ter as funções to_list e split_semicolon
+
+import EDA_pipe 
 
 #uvicorn api:app --reload
 
-app = FastAPI(title="Steam Price Predictor", description="API Inteligente")
+app = FastAPI(title="Steam Price Predictor")
 
-# --- CARREGAMENTO DO MODELO ---
-arquivo_modelo = 'steam_price_model.joblib'
-if os.path.exists(arquivo_modelo):
-    modelo = load(arquivo_modelo)
-    print("Modelo carregado!")
-else:
+try:
+    modelo = load('steam_price_model.joblib')
+    print("Modelo carregado com sucesso!")
+except Exception as e:
     modelo = None
-    print("ERRO: Modelo não encontrado.")
+    print(f"Não foi possível carregar o modelo. Detalhes: {e}")
 
+# Definição dos dados de entrada
 class JogoInput(BaseModel):
     genres: str
     categories: str
@@ -26,40 +26,21 @@ class JogoInput(BaseModel):
 
 @app.post("/predict")
 def prever_preco(jogo: JogoInput):
+    # Verificação de segurança
     if modelo is None:
-        raise HTTPException(status_code=500, detail="Modelo offline.")
+        raise HTTPException(status_code=500, detail="O Modelo de IA não foi carregado no servidor.")
 
     try:
-        # --- 1. DEBUG: Ver o que chegou ---
-        print(f"\n[API] Recebi: {jogo.dict()}")
-
-        # --- 2. LIMPEZA (CRUCIAL!) ---
-        # No EDA.py você usou .str.lower().str.strip() no publisher.
-        # Precisamos fazer igual aqui, senão o modelo não reconhece!
-        publisher_limpa = jogo.publisher.lower().strip()
         
-        # O genero não precisa de lower() pq o CountVectorizer já faz isso, 
-        # mas removemos espaços extras por segurança.
-        generos_limpos = jogo.genres.strip()
-        categorias_limpas = jogo.categories.strip()
-
-        # --- 3. Montar DataFrame ---
-        dados_dict = {
-            'genres': [generos_limpos],
-            'categories': [categorias_limpas],
-            'publisher': [publisher_limpa], 
+        df_input = pd.DataFrame({
+            'genres': [jogo.genres],
+            'categories': [jogo.categories],
+            'publisher': [jogo.publisher], 
             'release_year': [jogo.release_year]
-        }
-        df_novo = pd.DataFrame(dados_dict)
+        })
 
-        # --- 4. DEBUG: Ver o que vai para o modelo ---
-        print("[API] DataFrame Enviado pro Modelo:")
-        print(df_novo)
 
-        # --- 5. Previsão ---
-        preco_estimado = modelo.predict(df_novo)[0]
-        
-        print(f"[API] Resultado: {preco_estimado}")
+        preco_estimado = modelo.predict(df_input)[0]
 
         return {
             "status": "sucesso",
@@ -68,9 +49,10 @@ def prever_preco(jogo: JogoInput):
         }
 
     except Exception as e:
-        print(f"❌ ERRO NA API: {e}")
+        # Retorna erro 400 (Bad Request) se os dados estiverem num formato que quebra o código
+        print(f"Erro na previsão: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/")
 def home():
-    return {"status": "online"}
+    return {"mensagem": "API Steam Predictor Online "}
