@@ -11,6 +11,12 @@ from sklearn.metrics import mean_absolute_error, r2_score
 
 
 def Read_Data():
+    """
+    Lê o dataset original do CSV.
+    
+    Returns:
+        tuple: (df original, df cópia para limpeza)
+    """
 
     df = pd.read_csv("a_steam_data_2021_2025.csv")
     df_clean = df.copy()
@@ -22,6 +28,9 @@ def Read_Data():
     return df, df_clean
 
 def Analyze_Data(df_clean):
+    """
+    Exibe estatísticas descritivas e tipos de dados do dataset.
+    """
 
     numericas = df_clean.select_dtypes(include=[np.number]).columns.tolist()
     categoricas = df_clean.select_dtypes(include=['object']).columns.tolist()
@@ -48,6 +57,9 @@ def Analyze_Data(df_clean):
     return df_clean
 
 def Clear_Data(df_clean):
+    """
+    Realiza a limpeza manual dos dados: remove duplicatas, nulos e trata outliers de preço.
+    """
 
     #clear data
     df_clean = df_clean.drop_duplicates() #n temos duplicatas mas vou deixar com
@@ -73,6 +85,10 @@ def Clear_Data(df_clean):
     return df_clean
 
 def Transform_Data(df_clean):
+    """
+    Realiza Feature Engineering manual (One-Hot Encoding manual para Top 15 Gêneros).
+    Esta abordagem é menos eficiente que o CountVectorizer usado no pipeline.
+    """
     print("\nTRATAR DADOS (Transformar texto em número)")
     top_genres = []
     # //
@@ -112,6 +128,10 @@ def Transform_Data(df_clean):
 
 
 def Split_Data(df_tratado):
+    """
+    Separa os dados em Treino e Teste (80/20).
+    """
+
     print("\nTreino 80% / Teste 20%")
     
     target = 'price'
@@ -127,6 +147,13 @@ def Split_Data(df_tratado):
     return X_train, X_test, y_train, y_test
 
 def Train_Models(X_train, X_test, y_train, y_test):
+    """
+    Treina e compara Regressão Linear vs Random Forest.
+    
+    Returns:
+        O melhor modelo treinado.
+    """
+    
     print("\nTREINO E COMPARAÇÃO")
     
     # Regressão Linear, O mínimo aceitável

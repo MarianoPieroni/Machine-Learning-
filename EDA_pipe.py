@@ -14,6 +14,12 @@ from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
 from sklearn.feature_extraction.text import CountVectorizer
 
 def Read_Data():
+    """
+    Lê o dataset original e retorna uma cópia limpa para processamento.
+    
+    Returns:
+        pd.DataFrame: DataFrame contendo os dados brutos do CSV.
+    """
 
     df = pd.read_csv("a_steam_data_2021_2025.csv")
     df_clean = df.copy()
@@ -25,7 +31,15 @@ def Read_Data():
     return df_clean
 
 def Analyze_Data(df_clean):
+    """
+    Realiza uma análise exploratória inicial para identificar tipos de variáveis e dados faltantes.
 
+    Args:
+        df_clean (pd.DataFrame): DataFrame a ser analisado.
+    
+    Returns:
+        pd.DataFrame: O mesmo DataFrame, inalterado.
+    """
     numericas = df_clean.select_dtypes(include=[np.number]).columns.tolist()
     categoricas = df_clean.select_dtypes(include=['object']).columns.tolist()
     
@@ -47,7 +61,16 @@ def Analyze_Data(df_clean):
 
 
 def Clear_Data(df_clean):
+    """
+    Executa a limpeza dos dados, removendo nulos críticos, duplicatas e outliers.
 
+    Args:
+        df_clean (pd.DataFrame): DataFrame bruto.
+
+    Returns:
+        pd.DataFrame: DataFrame limpo e pronto para o split.
+    """
+    
     # Remove o que nao for numero da coluna
     if 'release_year' in df_clean.columns:
         df_clean['release_year'] = pd.to_numeric(df_clean['release_year'], errors='coerce')
@@ -72,6 +95,16 @@ def Clear_Data(df_clean):
     return df_clean
 
 def Split_Data(df_clean):
+    """
+    Divide os dados em conjuntos de treino e teste.
+
+    Args:
+        df_clean (pd.DataFrame): DataFrame limpo.
+
+    Returns:
+        tuple: X_train, X_test, y_train, y_test prontos para o pipeline.
+    """
+
     print("\nTreino 80% / Teste 20%")
 
     cols_to_use = ['genres', 'categories', 'publisher', 'release_year', 'price']
@@ -87,6 +120,11 @@ def Split_Data(df_clean):
 
 #FUNÇÕES AUXILIARES DO PIPELINE 
 def to_list(x):
+    """
+    Garante que a entrada para o vetorizador seja uma lista.
+    Essencial para compatibilidade com DataFrames de coluna única.
+    """
+
     #Converte o input para lista de forma segura.
     if isinstance(x, pd.DataFrame):
         # Pega a primeira coluna (independente do nome) e converte para lista
@@ -95,12 +133,21 @@ def to_list(x):
     return x.tolist()
 
 def split_semicolon(text):
+    """
+    Tokenizador personalizado para separar strings baseadas em ponto e vírgula.
+    Ex: 'Action; RPG' -> ['action', 'rpg']
+    """
+
     # Divide, remove espaços e converte para MINÚSCULO ('Action; RPG' -> ['action', 'rpg'])
     if not isinstance(text, str):
         return []
     return [t.strip().lower() for t in text.split(';')]
 
 def limpar_publisher(x):
+    """
+    Padroniza os nomes dos publishers para evitar duplicidade no OneHotEncoder.
+    Remove espaços e converte para minúsculas.
+    """
 
     #limpar/padronizar a Publisher antes do OneHotEncoder.
     #Converte tudo para minúsculo e remove espaços.
@@ -112,6 +159,15 @@ def limpar_publisher(x):
     return text_series.str.lower().str.strip().to_frame()
 
 def Treinar_pipeline(X_train, X_test, y_train, y_test):
+    """
+    Configura e treina o Pipeline de Machine Learning.
+    
+    O Pipeline inclui:
+    1. Imputação de mediana para anos.
+    2. CountVectorizer para listas de texto (Gêneros/Categorias).
+    3. OneHotEncoder para Publishers (após limpeza).
+    4. Modelo RandomForestRegressor.
+    """
 
     print("\nTreinando Pipeline")
 
@@ -164,7 +220,11 @@ def Treinar_pipeline(X_train, X_test, y_train, y_test):
     return pipeline
 
 def Salvar_variaveis(pipeline):
-        
+    """
+    Salva o modelo treinado e os artefatos (listas de categorias) em arquivos .joblib.
+    Remove o prefixo 'publisher_' gerado pelo OneHotEncoder para limpeza visual.
+    """
+
     # Acesso aos transformadores dentro do pipeline
     pre = pipeline.named_steps['preprocessor']
         

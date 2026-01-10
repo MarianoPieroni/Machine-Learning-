@@ -5,6 +5,13 @@ from joblib import load
 import EDA_pipe  # Importa o seu EDA.py
 
 def menu():
+    """
+    Exibe o menu principal da interface de linha de comando (CLI).
+
+    Returns:
+        str: A opção escolhida pelo utilizador ('1', '2' ou '3').
+    """
+
     print("STEAM PICES PREDICTOR")
     print("1. Treinar IA (OBS: SE ja tiver o joblib não precisa ser feita)")
     print("2. Fazer Previsão")
@@ -12,6 +19,13 @@ def menu():
     return input("Escolha: ")
 
 def modo_previsao():
+    """
+    Carrega o modelo treinado e solicita inputs ao utilizador para realizar uma previsão de preço.
+    
+    Verifica se os ficheiros .joblib existem, carrega as listas de referência para auxiliar
+    o utilizador e executa o pipeline de previsão.
+    """
+
     print("\nPREVISÃO")
     arquivo = 'steam_price_model.joblib'
     
@@ -78,6 +92,10 @@ def modo_previsao():
 #nao precisamos mais mudar o imput pois a pipeline ja faz isso no modelo
 
 def main():
+    """
+    Função principal que controla o fluxo do programa.
+    """
+    
     while True:
         op = menu()
         if op == '1':

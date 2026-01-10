@@ -17,6 +17,14 @@ API_URL = "http://127.0.0.1:8000/predict"
 # --- BARRA LATERAL (OPÇÕES) ---
 st.sidebar.header("Configurações do Jogo")
 
+
+"""
+Carrega as listas de opções (Gêneros, Publishers, Categorias) dos ficheiros .joblib.
+    
+Tenta carregar os ficheiros locais gerados pelo treino. Se falhar,
+retorna listas padrão para evitar que a aplicação quebre (Fallback).
+
+"""
 #Carregar Listas para os Menus
 try:
     # Carregamos os dados brutos
@@ -39,6 +47,14 @@ except Exception as e:
 
 #Inputs
 
+"""
+Renderiza os componentes de input na barra lateral e captura as escolhas do utilizador.
+
+Args:
+    lista_generos (list): Opções de gêneros.
+    lista_publishers (list): Opções de publishers.
+    lista_categorias (list): Opções de categorias.
+"""
 # Gêneros
 generos_selecionados = st.sidebar.multiselect(
     "Escolha os Gêneros:",
@@ -68,7 +84,10 @@ ano_selecionado = st.sidebar.number_input(
     value=2025
 )
 
-# --- ÁREA PRINCIPAL (RESULTADO) ---
+"""
+Principal da aplicação Streamlit (Proof of Concept).
+Controla o fluxo visual, chama a API de previsão e exibe os resultados.
+"""
 
 st.write("### Resumo do Jogo")
 col1, col2 = st.columns(2)
@@ -99,7 +118,7 @@ if st.button("Calcular Preço Sugerido", type="primary"):
     }
 
     # 2. Barra de progresso
-    with st.spinner('Consultando a Inteligência Artificial...'):
+    with st.spinner('Consultando a Inteligência Artificial'):
         try:
             # 3. Manda para a API
             response = requests.post(API_URL, json=dados_jogo)
@@ -116,5 +135,4 @@ if st.button("Calcular Preço Sugerido", type="primary"):
                 st.error(f"Erro na API: {response.text}")
                 
         except requests.exceptions.ConnectionError:
-            st.error("Erro Crítico: A API não está rodando!")
-            st.info("Dica: Verifique se você rodou 'uvicorn api:app' no outro terminal.")
+            st.error("A API não está rodando!")

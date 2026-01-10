@@ -19,14 +19,37 @@ except Exception as e:
 
 # Definição dos dados de entrada
 class JogoInput(BaseModel):
+    """
+    Define o esquema de dados esperado para a requisição de previsão.
+    Utiliza Pydantic para validação automática de tipos.
+    """
+
     genres: str
     categories: str
     publisher: str
     release_year: int
 
+
+
 @app.post("/predict")
 def prever_preco(jogo: JogoInput):
-    # Verificação de segurança
+    """
+    Endpoint principal para previsão de preços.
+    
+    Recebe um objeto JSON com os dados do jogo, converte para DataFrame
+    e passa pelo Pipeline de Machine Learning carregado.
+    
+    Args:
+        jogo (JogoInput): Objeto contendo generos, categorias, publisher e ano.
+        
+    Returns:
+        dict: JSON contendo o status, preço estimado e moeda.
+    
+    Raises:
+        HTTPException 500: Se o modelo não estiver carregado.
+        HTTPException 400: Se houver erro no processamento dos dados.
+    """
+
     if modelo is None:
         raise HTTPException(status_code=500, detail="O Modelo de IA não foi carregado no servidor.")
 
@@ -55,4 +78,7 @@ def prever_preco(jogo: JogoInput):
 
 @app.get("/")
 def home():
+    """
+    Rota de verificação de saúde da API (Health Check).
+    """
     return {"mensagem": "API Steam Predictor Online "}
