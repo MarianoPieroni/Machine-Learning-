@@ -7,6 +7,7 @@ from joblib import dump, load
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
 
@@ -148,12 +149,9 @@ def Split_Data(df_tratado):
 
 def Train_Models(X_train, X_test, y_train, y_test):
     """
-    Treina e compara Regressão Linear vs Random Forest.
-    
-    Returns:
-        O melhor modelo treinado.
+    Treina e compara 3 modelos: Regressão Linear, Random Forest e Gradient Boosting.
     """
-    
+
     print("\nTREINO E COMPARAÇÃO")
     
     # Regressão Linear, O mínimo aceitável
@@ -190,16 +188,41 @@ def Train_Models(X_train, X_test, y_train, y_test):
     r2_rf = r2_score(y_test, pred_rf)
     print(f"Erro Médio (Random Forest): {maen_rf:.2f} euros")
     print(f"Score R²: {r2_rf:.4f}")
+
+    #Gradient Boosting 
+    print("\nTreinando Gradient Boosting")
+    # Este modelo aprende com os erros do anterior sequencialmente
+    model_gb = GradientBoostingRegressor(
+        n_estimators=200,
+        max_depth=5,       # Geralmente usa arvores menores que o Random Forest
+        min_samples_leaf=2,
+        random_state=42
+    )
+    model_gb.fit(X_train, y_train)
+
+    # Previsão
+    pred_gb = model_gb.predict(X_test)
+
+    # Avaliação
+    maen_gb = mean_absolute_error(y_test, pred_gb)
+    r2_gb = r2_score(y_test, pred_gb)
+    print(f"Erro Médio (Gradient Boosting): {maen_gb:.2f} euros")
+    print(f"Score R²: {r2_gb:.4f}")
+
     
-    print("\nRESULTADO FINAL")
-    if maen_rf < maen_lr:
-        melhoria = maen_lr - maen_rf
-        print(f"O Random Forest venceu")
-        print(f"Ele erra {melhoria:.2f} euros a menos")
-        return model_rf
-    else:
-        print("O Randon Florest perdeu")
-        return model_lr
+    print("\nComparação dos modelos")
+
+    print("\nRegressão Linear")
+    print(f"Erro Médio: {maen_lr:.2f} euros")
+    print(f"Score R²: {r2_lr:.4f}")
+
+    print("\nRandom Forest")
+    print(f"Erro Médio: {maen_rf:.2f} euros")
+    print(f"Score R²: {r2_rf:.4f}")
+
+    print("\nGradient Boosting")
+    print(f"Erro Médio: {maen_gb:.2f} euros")
+    print(f"Score R²: {r2_gb:.4f}")
 
 def main():
     df, df_clean = Read_Data()
@@ -215,16 +238,8 @@ def main():
         X_train, X_test, y_train, y_test = Split_Data(df_clean)
 
         
-        #treino
-        
-        if X_train is not None:
-            melhor_modelo,lista_generos, = Train_Models(X_train, X_test, y_train, y_test)
-            #criar o joblib
-            if melhor_modelo is not None:
-                from joblib import dump
-    #         dump(melhor_modelo, 'steam_price_model.joblib')
-    #         dump(lista_generos, 'generos.joblib')
-                print("joblib criado")
+        Train_Models(X_train, X_test, y_train, y_test)
+
 
 
 
@@ -242,7 +257,5 @@ def main():
     #ao mudar o pipe para apenas o top20, muda nada pois ele ja faz isso ao eliminar os generos com 1 jogo
 
 
-    return df_clean
-
-""" if __name__ == "__main__":
-    main() """
+if __name__ == "__main__":
+    main()

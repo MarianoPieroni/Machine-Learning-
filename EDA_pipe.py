@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.ensemble import GradientBoostingRegressor
 
 #pipeline
 from sklearn.pipeline import Pipeline
@@ -70,7 +71,7 @@ def Clear_Data(df_clean):
     Returns:
         pd.DataFrame: DataFrame limpo e pronto para o split.
     """
-    
+
     # Remove o que nao for numero da coluna
     if 'release_year' in df_clean.columns:
         df_clean['release_year'] = pd.to_numeric(df_clean['release_year'], errors='coerce')
@@ -195,29 +196,88 @@ def Treinar_pipeline(X_train, X_test, y_train, y_test):
         remainder='drop'
     )
 
-    model = RandomForestRegressor(
+    model_rf = Comparar_modelos(X_train, X_test, y_train, y_test,preprocessor)
+    
+    return model_rf
+
+def Comparar_modelos(X_train, X_test, y_train, y_test,preprocessor):
+
+    """ model_lr = LinearRegression()
+    pipeline_lr = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('model', model_lr)
+    ])
+    
+    # Treinar
+    pipeline_lr.fit(X_train, y_train)
+    
+    # Avaliar modelo
+    pred_lr = pipeline_lr.predict(X_test)
+    maen_lr = mean_absolute_error(y_test, pred_lr)
+    r2_lr = r2_score(y_test, pred_lr) """
+
+
+
+    """ model_gb = GradientBoostingRegressor(
+        n_estimators=200,
+        max_depth=5,       # Geralmente usa arvores menores que o Random Forest
+        min_samples_leaf=2,
+        random_state=42
+    )
+    pipeline_gb = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('model', model_gb)
+    ])
+    
+    # Treinar
+    pipeline_gb.fit(X_train, y_train)
+    
+    # Avaliar modelo
+    pred_gb = pipeline_gb.predict(X_test)
+    maen_gb = mean_absolute_error(y_test, pred_gb)
+    r2_gb = r2_score(y_test, pred_gb) """
+
+
+
+    model_rf = RandomForestRegressor(
         n_estimators=200,
         max_depth=20,
         min_samples_leaf=4, # CONTROLA overfitting
         random_state=42,
         n_jobs=-1)
 
-    pipeline = Pipeline(steps=[
+    pipeline_rf = Pipeline(steps=[
         ('preprocessor', preprocessor),
-        ('model', model)
+        ('model', model_rf)
     ])
     
     # Treinar
-    pipeline.fit(X_train, y_train)
+    pipeline_rf.fit(X_train, y_train)
     
     # Avaliar modelo
-    pred_rf = pipeline.predict(X_test)
+    pred_rf = pipeline_rf.predict(X_test)
     maen_rf = mean_absolute_error(y_test, pred_rf)
     r2_rf = r2_score(y_test, pred_rf)
-    print(f"Erro Médio (Random Forest): {maen_rf:.2f} euros")
+
+
+
+    """ print("\nComparação dos modelos")
+
+    print("\nRegressão Linear")
+    print(f"Erro Médio: {maen_lr:.2f} euros")
+    print(f"Score R²: {r2_lr:.4f}")
+
+    print("\nGradient Boosting")
+    print(f"Erro Médio: {maen_gb:.2f} euros")
+    print(f"Score R²: {r2_gb:.4f}") """
+
+    print("\nRandom Forest")
+    print(f"Erro Médio: {maen_rf:.2f} euros")
     print(f"Score R²: {r2_rf:.4f}")
-    
-    return pipeline
+
+    return pipeline_rf
+
+
 
 def Salvar_variaveis(pipeline):
     """
@@ -254,6 +314,7 @@ def main():
         #Regressão Linear: Diria: "Bom, parece que sobe 5 euros por ano. Então em 2030 será €75." (Ela traça uma linha infinita).
         #O ano 2030 é maior que 2025? Sim. Eu tenho dados depois de 2025? Não. Então a melhor
         #resposta que tenho é a média do último grupo que conheço (2025)." Resultado: €50.
-
+    
+ #   Treinar_pipeline(X_train, X_test, y_train, y_test)
 """ if __name__ == "__main__":
     main() """
