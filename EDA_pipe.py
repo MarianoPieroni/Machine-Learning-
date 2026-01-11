@@ -157,7 +157,7 @@ def limpar_publisher(x):
     else:
         text_series = x.astype(str)
     
-    return text_series.str.lower().str.strip().to_frame()
+    return text_series.str.lower().str.strip().to_frame(name='publisher')
 
 def Treinar_pipeline(X_train, X_test, y_train, y_test):
     """
