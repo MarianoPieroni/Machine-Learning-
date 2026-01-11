@@ -202,7 +202,7 @@ def Treinar_pipeline(X_train, X_test, y_train, y_test):
 
 def Comparar_modelos(X_train, X_test, y_train, y_test,preprocessor):
 
-    """ model_lr = LinearRegression()
+    model_lr = LinearRegression()
     pipeline_lr = Pipeline(steps=[
         ('preprocessor', preprocessor),
         ('model', model_lr)
@@ -214,11 +214,11 @@ def Comparar_modelos(X_train, X_test, y_train, y_test,preprocessor):
     # Avaliar modelo
     pred_lr = pipeline_lr.predict(X_test)
     maen_lr = mean_absolute_error(y_test, pred_lr)
-    r2_lr = r2_score(y_test, pred_lr) """
+    r2_lr = r2_score(y_test, pred_lr)
 
 
 
-    """ model_gb = GradientBoostingRegressor(
+    model_gb = GradientBoostingRegressor(
         n_estimators=200,
         max_depth=5,       # Geralmente usa arvores menores que o Random Forest
         min_samples_leaf=2,
@@ -235,7 +235,7 @@ def Comparar_modelos(X_train, X_test, y_train, y_test,preprocessor):
     # Avaliar modelo
     pred_gb = pipeline_gb.predict(X_test)
     maen_gb = mean_absolute_error(y_test, pred_gb)
-    r2_gb = r2_score(y_test, pred_gb) """
+    r2_gb = r2_score(y_test, pred_gb)
 
 
 
@@ -261,7 +261,7 @@ def Comparar_modelos(X_train, X_test, y_train, y_test,preprocessor):
 
 
 
-    """ print("\nComparação dos modelos")
+    print("\nComparação dos modelos")
 
     print("\nRegressão Linear")
     print(f"Erro Médio: {maen_lr:.2f} euros")
@@ -269,7 +269,7 @@ def Comparar_modelos(X_train, X_test, y_train, y_test,preprocessor):
 
     print("\nGradient Boosting")
     print(f"Erro Médio: {maen_gb:.2f} euros")
-    print(f"Score R²: {r2_gb:.4f}") """
+    print(f"Score R²: {r2_gb:.4f}")
 
     print("\nRandom Forest")
     print(f"Erro Médio: {maen_rf:.2f} euros")
